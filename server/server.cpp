@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <regex>
 #include <thread>
+#include <arpa/inet.h>
+#include "Server.h"
 
 using namespace std;
 
@@ -23,18 +25,27 @@ std::string get_numbers(std::string input)
     remove_all("-\\d+", input);
     remove_all("\\d+\\.\\d+", input);
 
-    vector<int> numbers;
+    vector<unsigned long long> numbers;
     regex r("\\d+");
     smatch m;
-    int sum = 0;
+    unsigned long long sum = 0;
 
     while(regex_search(input, m, r))
     {
-        int n = stoi(m[0]);
-        sum += n;
+        unsigned long long n;
+        try {
+            n = stoull(m[0]);
+            sum += n;
+        }
+        catch (std::exception e)
+        {
+            return "Input data is not correct";
+        }
+
         numbers.push_back(n);
         input = m.suffix();
     }
+
     if(numbers.empty())
         return "";
 
@@ -48,9 +59,18 @@ std::string get_numbers(std::string input)
     return output;
 }
 
+std::string get_ipaddr(int conn_fd)
+{
+    struct sockaddr_in addr{};
+    socklen_t  addr_size = sizeof(struct sockaddr_in);
+    getpeername(conn_fd, (struct sockaddr*) &addr, &addr_size);
+
+    return inet_ntoa(addr.sin_addr);
+}
+
 void connecting(int conn_fd)
 {
-    string prefix = "[THREAD CONN " + std::to_string(conn_fd) + "]:";
+    string prefix = "[THREAD CONN " + get_ipaddr(conn_fd) + "]:";
     cout << prefix << "Connection is established" << endl;
     char recvBuff[1024]{0};
     char sendBuff[1024]{0};
@@ -83,36 +103,7 @@ void connecting(int conn_fd)
 
 int main() {
 
-    int socket_fd = 0;
-    int conn_fd   = 0;
-
-    socket_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if(socket_fd < 0)
-    {
-        cout << "Creating the socket is failed" << endl;
-        return 1;
-    }
-
-    sockaddr_in serv_addr{0};
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    serv_addr.sin_port = htons(4999);
-
-    bind(socket_fd, (sockaddr*) &serv_addr, sizeof(serv_addr));
-    listen(socket_fd, 10);
-
-    while (true) {
-        cout << "Waiting for connection" << endl;
-        conn_fd = accept(socket_fd, (sockaddr *) NULL, NULL);
-
-        if (conn_fd < 0) {
-            cout << "Connection is failed" << endl;
-            continue;
-        }
-
-        std::thread session(connecting, conn_fd);
-        session.detach();
-    }
+    Server& s = Server::getInstance();
 
     return 0;
 }

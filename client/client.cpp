@@ -17,18 +17,22 @@ void do_write(int socket_fd)
     char sendBuff[1024]{0};
 
     while (true) {
-        cin.getline(sendBuff, sizeof(sendBuff), '\n');
+        string input;
+        //cin.getline(sendBuff, sizeof(sendBuff), '\n');
+        getline(cin, input);
+        strncpy(sendBuff, input.c_str(), input.length());
+        sendBuff[1023] = '\0';
 
         ssize_t send_ok = send(socket_fd, sendBuff, strlen(sendBuff), 0);
         if (send_ok < 0) {
             cout << prefix << "Error of sending to server" << endl;
             return;
         }
-//        if(send_ok == 0)
-//        {
-//            cout << prefix << "Connection is closed from server side" << endl;
-//            return;
-//        }
+        if(send_ok == 0)
+        {
+            cout << prefix << "Connection is closed from server side" << endl;
+            return;
+        }
         memset(sendBuff, 0, sizeof(sendBuff));
     }
 }
@@ -90,6 +94,8 @@ int main(const int argc, const char **argv){
         cout << "Connection is failed" << endl;
         return 1;
     }
+    else
+        cout << "Connection is established" << endl;
 
     std::thread thr_write(do_write, socket_fd);
     std::thread thr_read(do_read, socket_fd);
