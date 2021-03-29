@@ -2,12 +2,8 @@
 // Created by andrey on 29.03.21.
 //
 
-#include <cstring>
-#include <unistd.h>
-#include <regex>
-#include <thread>
-#include <arpa/inet.h>
 #include "Server.h"
+#include "Session.h"
 
 using namespace std;
 
@@ -18,11 +14,11 @@ Server::Server() {
     serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     serv_addr.sin_port = htons(4999);
 
-    initTcpStream(serv_addr);
+    runTcpStream(serv_addr);
 
 }
 
-void Server::initTcpStream(const sockaddr_in &serv_addr) {
+void Server::runTcpStream(const sockaddr_in &serv_addr) {
     tcp_sock = socket(AF_INET, SOCK_STREAM, 0);
     bind(tcp_sock, (sockaddr*) &serv_addr, sizeof(serv_addr));
     listen(tcp_sock, 10);
@@ -36,12 +32,11 @@ void Server::initTcpStream(const sockaddr_in &serv_addr) {
             continue;
         }
 
-        std::thread session(&Server::tcpConnect, this, conn_fd);
-        session.detach();
+        Session s(*this, conn_fd);
     }
 }
 
-void Server::initUDPStream() {
+void Server::runUDPStream() {
 
 }
 
@@ -117,10 +112,10 @@ std::string Server::get_numbers(std::string input) {
 
     sort(numbers.begin(), numbers.end());
 
-    string output;
+    string output= "[NUMBERS]: ";
     for( auto n : numbers)
         output += std::to_string(n) + " ";
-    output += "\n" + std::to_string(sum);
+    output += "\n[SUM]: " + std::to_string(sum);
 
     return output;
 }
