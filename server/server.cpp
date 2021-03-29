@@ -53,6 +53,7 @@ void connecting(int conn_fd)
     string prefix = "[THREAD CONN " + std::to_string(conn_fd) + "]:";
     cout << prefix << "Connection is established" << endl;
     char recvBuff[1024]{0};
+    char sendBuff[1024]{0};
 
     while (true) {
 
@@ -65,16 +66,18 @@ void connecting(int conn_fd)
         if( recv_ok == 0 ) {
             close(conn_fd);
             cout << prefix << "Connection is closed from the client side" << endl;
+            break;
         }
 
         string input(recvBuff);
         cout << prefix << input << endl;
-        char sendBuff[1024]{0};
+
         strcpy(sendBuff, get_numbers(input).c_str());
         ssize_t send_ok = send(conn_fd, sendBuff, strlen(sendBuff), 0);
         if(send_ok < 0)
             cout << prefix << "Error of sending answer" << endl;
         memset(recvBuff, 0, sizeof(recvBuff));
+        memset(sendBuff, 0, sizeof(sendBuff));
     }
 }
 
@@ -107,8 +110,8 @@ int main() {
             continue;
         }
 
-        std::thread th(connecting, conn_fd);
-        th.detach();
+        std::thread session(connecting, conn_fd);
+        session.detach();
     }
 
     return 0;
